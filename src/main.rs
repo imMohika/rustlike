@@ -1,35 +1,50 @@
-mod map;
-mod player;
 mod camera;
+mod components;
+mod map;
+mod spawner;
+mod systems;
 
 mod prelude {
     pub use bracket_lib::prelude::*;
+    pub use legion::systems::CommandBuffer;
+    pub use legion::world::SubWorld;
+    pub use legion::*;
     pub const SCREEN_WIDTH: i32 = 100;
     pub const SCREEN_HEIGHT: i32 = 80;
     pub const DISPLAY_WIDTH: i32 = 25;
     pub const DISPLAY_HEIGHT: i32 = 20;
-    pub use crate::map::*;
-    pub use crate::player::*;
     pub use crate::camera::*;
+    pub use crate::components::*;
+    pub use crate::map::*;
+    pub use crate::spawner::*;
+    pub use crate::systems::*;
 }
 
 use prelude::*;
 
 struct State {
-    map: Map,
-    player: Player,
-    camera: Camera
+    ecs: World,
+    resources: Resources,
+    systems: Schedule,
 }
 
 impl State {
     fn new() -> Self {
-        let player = Player::new(Point::new(10, 10));
-        let camera = Camera::new(player.position);
+        let mut ecs = World::default();
+        let mut resources = Resources::default();
+
+        let map = Map::new();
+        let camera = Camera::new(Point::new(10, 10));
+
+        spawn_player(&mut ecs, Point::new(10, 10));
+
+        resources.insert(map);
+        resources.insert(camera);
 
         Self {
-            map: Map::new(),
-            player,
-            camera
+            ecs,
+            resources,
+            systems: build_scheduler(),
         }
     }
 
@@ -45,9 +60,9 @@ impl GameState for State {
     fn tick(&mut self, ctx: &mut BTerm) {
         self.clear_layers(ctx);
 
-        self.player.update(ctx, &self.map, &mut self.camera);
-        self.map.render(ctx, &self.camera);
-        self.player.render(ctx, &mut self.camera);
+        self.resources.insert(ctx.key);
+        self.systems.execute(&mut self.ecs, &mut self.resources);
+        render_draw_buffer(ctx).expect("Render error")
     }
 }
 
@@ -55,9 +70,9 @@ fn main() -> BError {
     let context = BTermBuilder::new()
         .with_dimensions(DISPLAY_WIDTH, DISPLAY_HEIGHT)
         .with_fps_cap(30.0)
-        .with_tile_dimensions(32,32)
+        .with_tile_dimensions(32, 32)
         .with_resource_path("resourses/")
-        .with_font("spritesheet.png",32,32)
+        .with_font("spritesheet.png", 32, 32)
         .with_simple_console(DISPLAY_WIDTH, DISPLAY_HEIGHT, "spritesheet.png")
         .with_simple_console_no_bg(DISPLAY_WIDTH, DISPLAY_HEIGHT, "spritesheet.png")
         .build()?;
