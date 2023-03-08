@@ -1,3 +1,4 @@
+use crate::camera::Camera;
 use crate::map::Map;
 use crate::prelude::{BLACK, BTerm, Point, to_cp437, VirtualKeyCode, YELLOW};
 
@@ -29,11 +30,17 @@ impl Player {
         }
     }
 
-    pub fn update(&mut self, ctx: &mut BTerm, map: &Map) {
+    pub fn update(&mut self, ctx: &mut BTerm, map: &Map, camera: &mut Camera) {
         self.walk(ctx, &map);
+        camera.update_position(self.position);
     }
 
-    pub fn render(&self, ctx: &mut BTerm) {
-        ctx.set(self.position.x,self.position.y, YELLOW,BLACK, to_cp437('@'))
+    pub fn render(&self, ctx: &mut BTerm, camera: &Camera) {
+        ctx.set_active_console(1);
+
+        let x = self.position.x - camera.x_start;
+        let y = self.position.y - camera.y_start;
+
+        ctx.set(x,y, YELLOW,BLACK, to_cp437('@'))
     }
 }

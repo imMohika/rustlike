@@ -54,16 +54,23 @@ impl Map {
         self.in_bounds(point) && self.tiles[self.tile_index(point)] == TileType::Floor
     }
 
-    pub fn render(&self, ctx: &mut BTerm) {
-        for y in 0..SCREEN_HEIGHT {
-            for x in 0..SCREEN_WIDTH {
-                let index = self.tile_index(Point::new(x, y));
-                match self.tiles[index] {
-                    TileType::Floor => {
-                        ctx.set(x, y, GRAY, BLACK, to_cp437('.'));
-                    }
-                    TileType::Wall => {
-                        ctx.set(x, y, YELLOW, BLACK, to_cp437('#'));
+    pub fn render(&self, ctx: &mut BTerm, camera: &Camera) {
+        ctx.set_active_console(0);
+
+        for y in camera.y_start..camera.y_end {
+            for x in camera.x_start..camera.x_end {
+                if self.in_bounds(Point::new(x,y)) {
+                    let index = self.tile_index(Point::new(x, y));
+                    let new_x = x - camera.x_start;
+                    let new_y = y - camera.y_start;
+
+                    match self.tiles[index] {
+                        TileType::Floor => {
+                            ctx.set(new_x, new_y, GRAY, BLACK, to_cp437('.'));
+                        }
+                        TileType::Wall => {
+                            ctx.set(new_x, new_y, YELLOW, BLACK, to_cp437('#'));
+                        }
                     }
                 }
             }
